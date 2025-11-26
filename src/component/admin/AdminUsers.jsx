@@ -17,13 +17,26 @@ const AdminUsers = () => {
             {loading && <p>Loading users...</p>}
             {error && <p>Error: {error}</p>}
             <ul className="list-disc pl-5 flex flex-wrap justify-center gap-4" >
-                {users.map(user => (
-                    <li className="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl p-4 mb-4" key={user.id}>
-                        <strong>{user.email}</strong>
-                        <p>Phone: {user.phone}</p>
-                        <p>Created At: {user.createdAt?.toDate().toString()}</p>
-                    </li>
-                ))}
+                {users.map(user => {
+                    const phone = user.phoneNumber || user.phone || "N/A";
+                    const createdDate = (() => {
+                        if (user.createdAt?.toDate) {
+                            return user.createdAt.toDate();
+                        }
+                        if (user.createdAt?.seconds) {
+                            return new Date(user.createdAt.seconds * 1000);
+                        }
+                        return null;
+                    })();
+
+                    return (
+                        <li className="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl p-4 mb-4" key={user.id}>
+                            <strong>{user.email}</strong>
+                            <p>Phone: {phone}</p>
+                            <p>Created At: {createdDate ? createdDate.toLocaleString() : "Unknown"}</p>
+                        </li>
+                    );
+                })}
             </ul>
         </div>
     )
