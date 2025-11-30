@@ -2,7 +2,7 @@ import { createSlice,createAsyncThunk } from "@reduxjs/toolkit";
 import {getDocs,collection} from "firebase/firestore";
 import { db } from "../../firebase.init.js";
 
-// thunk for fetching users
+//fetching users
 export const fetchUsers=createAsyncThunk(
     'user/fetchUsers',
     async(__,thunkAPI)=>{

@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import { auth, db } from "../../firebase.init.js";
 
 const USER_STORAGE_KEY = "portal-auth-user";
@@ -15,6 +15,7 @@ const mapFirebaseUser = (firebaseUser, overrides = {}) => {
         displayName: firebaseUser.displayName || overrides.displayName || "",
         photoURL: firebaseUser.photoURL || overrides.photoURL || "",
         phoneNumber: firebaseUser.phoneNumber || overrides.phoneNumber || "",
+        isAdmin: Boolean(overrides.isAdmin),
     };
 };
 
@@ -45,20 +46,25 @@ const persistUser = (user) => {
     }
 };
 
-// Thunk for login
+// login
 export const loginUser = createAsyncThunk(
     "auth/loginUser",
     async (form, thunkAPI) => {
         try {
             const userCredential = await signInWithEmailAndPassword(auth, form.email, form.password);
-            return mapFirebaseUser(userCredential.user, { email: form.email });
+            const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+            const userData = userDoc.exists() ? userDoc.data() : {};
+            return mapFirebaseUser(userCredential.user, {
+                ...userData,
+                email: form.email,
+            });
         } catch (error) {
             return thunkAPI.rejectWithValue(error.message);
         }
     }
 );
 
-// Thunk for signup
+// signup
 export const signupUser = createAsyncThunk(
     "auth/signupUser",
     async (form, thunkAPI) => {
@@ -70,17 +76,19 @@ export const signupUser = createAsyncThunk(
                 displayName: userCredential.user.displayName || "",
                 photoURL: userCredential.user.photoURL || "",
                 phoneNumber: form.phone || "",
+                isAdmin: false,
                 createdAt: serverTimestamp(),
             };
-            // Save plain user info in Firestore
+            //user in Firestore
             const userDoc = doc(db, "users", plainUser.uid);
             await setDoc(userDoc, plainUser);
-            // Store only serializable info in Redux
+            //serializable info in Redux
             return mapFirebaseUser(userCredential.user, {
                 email: plainUser.email,
                 displayName: plainUser.displayName,
                 photoURL: plainUser.photoURL,
                 phoneNumber: plainUser.phoneNumber,
+                isAdmin: plainUser.isAdmin,
             });
         } catch (error) {
             return thunkAPI.rejectWithValue(error.message);
@@ -122,7 +130,7 @@ const authSlice = createSlice({
             })
             .addCase(loginUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload; // Only plain, serializable info
+                state.user = action.payload; 
                 persistUser(action.payload);
             })
             .addCase(loginUser.rejected, (state, action) => {
@@ -135,7 +143,7 @@ const authSlice = createSlice({
             })
             .addCase(signupUser.fulfilled, (state, action) => {
                 state.loading = false;
-                state.user = action.payload; // Only plain, serializable info
+                state.user = action.payload; 
                 persistUser(action.payload);
             })
             .addCase(signupUser.rejected, (state, action) => {

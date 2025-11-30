@@ -1,7 +1,7 @@
-import React from "react";
-import { useDispatch ,useSelector } from "react-redux";
-import {fetchUsers} from '../../pages/features/userSlice'
-import { useEffect } from "react";
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Link } from "react-router-dom";
+import { fetchUsers } from "../../pages/features/userSlice";
 
 const AdminUsers = () => {
     const dispatch = useDispatch();
@@ -16,29 +16,49 @@ const AdminUsers = () => {
             <h2 className="text-xl font-bold mb-4 text-center">All Users</h2>
             {loading && <p>Loading users...</p>}
             {error && <p>Error: {error}</p>}
-            <ul className="list-disc pl-5 flex flex-wrap justify-center gap-4" >
-                {users.map(user => {
-                    const phone = user.phoneNumber || user.phone || "N/A";
-                    const createdDate = (() => {
-                        if (user.createdAt?.toDate) {
-                            return user.createdAt.toDate();
-                        }
-                        if (user.createdAt?.seconds) {
-                            return new Date(user.createdAt.seconds * 1000);
-                        }
-                        return null;
-                    })();
+            {!loading && !error && (
+                <div className="overflow-x-auto">
+                    <table className="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Email</th>
+                                <th>Phone</th>
+                                <th>Created At</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map((user, index) => {
+                                const phone = user.phoneNumber || user.phone || "N/A";
+                                const createdDate = (() => {
+                                    if (user.createdAt?.toDate) {
+                                        return user.createdAt.toDate();
+                                    }
+                                    if (user.createdAt?.seconds) {
+                                        return new Date(user.createdAt.seconds * 1000);
+                                    }
+                                    return null;
+                                })();
 
-                    return (
-                        <li className="card bg-base-100 w-full max-w-sm shrink-0 shadow-2xl p-4 mb-4" key={user.id}>
-                            <strong>{user.email}</strong>
-                            <p>Phone: {phone}</p>
-                            <p>Created At: {createdDate ? createdDate.toLocaleString() : "Unknown"}</p>
-                        </li>
-                    );
-                })}
-            </ul>
+                                return (
+                                    <tr key={user.id || user.uid || index}>
+                                        <td>{index + 1}</td>
+                                        <td>
+                                            <Link className="link link-primary" to={`/admin/users/${user.id || user.uid}`}
+                                            >
+                                                {user.email || "Unknown"}
+                                            </Link>
+                                        </td>
+                                        <td>{phone}</td>
+                                        <td>{createdDate ? createdDate.toLocaleString() : "Unknown"}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
-    )
+    );
 }
 export default AdminUsers;

@@ -9,14 +9,18 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../../firebase.init.js";
 
-// thunk for adding a task by admin
+//adding a task by admin
 export const addTask = createAsyncThunk(
   "task/addTask",
-  async ({ title, description, assignedTo, assignedEmail = "" }, thunkAPI) => {
+  async ({ title, description, assignedTo, assignedEmail = "", deadline = "" }, thunkAPI) => {
     try {
+      const deadlineTimestamp = deadline
+        ? Timestamp.fromDate(new Date(deadline))
+        : null;
       const docRef = await addDoc(collection(db, "tasks"), {
         title,
         description,
@@ -24,6 +28,8 @@ export const addTask = createAsyncThunk(
         assignedEmail,
         report: "",
         status: "pending",
+        deadline: deadlineTimestamp,
+        comment: "",
         createdAt: serverTimestamp(),
       });
       return {
@@ -34,6 +40,8 @@ export const addTask = createAsyncThunk(
         assignedEmail,
         report: "",
         status: "pending",
+        deadline: deadlineTimestamp,
+        comment: "",
       };
     } catch (err) {
       return thunkAPI.rejectWithValue(err.message);
@@ -41,7 +49,7 @@ export const addTask = createAsyncThunk(
   }
 );
 
-// admin fetches all tasks
+// admin show all tasks
 export const fetchAllTasks = createAsyncThunk(
   "task/fetchAllTasks",
   async (_, thunkAPI) => {
@@ -56,8 +64,8 @@ export const fetchAllTasks = createAsyncThunk(
   }
 );
 
-// users fetches their tasks from admin
 
+// users show their tasks from admin
 export const fetchUserTasks = createAsyncThunk(
   "task/fetchUserTasks",
   async (userId, thunkAPI) => {
@@ -76,7 +84,7 @@ export const fetchUserTasks = createAsyncThunk(
   }
 );
 
-// user submits a report/update for their task
+// user report in task
 export const submitTaskReport = createAsyncThunk(
   "task/submitTaskReport",
   async ({ taskId, report }, thunkAPI) => {
@@ -93,7 +101,39 @@ export const submitTaskReport = createAsyncThunk(
   }
 );
 
-// delete a task
+// user marks task as done
+export const markTaskDone = createAsyncThunk(
+  "task/markTaskDone",
+  async (taskId, thunkAPI) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, {
+        status: "done",
+      });
+      return { taskId, status: "done" };
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.message);
+    }
+  }
+);
+
+// admin adds comment for user
+export const updateTaskComment = createAsyncThunk(
+  "task/updateTaskComment",
+  async ({ taskId, comment }, thunkAPI) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await updateDoc(taskRef, {
+        comment,
+      });
+      return { taskId, comment };
+    } catch (err) {
+      return thunkAPI.rejectWithValue(err.message);
+    }
+  }
+);
+
+// delete task
 export const deleteTask = createAsyncThunk(
   "task/deleteTask",
   async (taskId, thunkAPI) => {
@@ -170,6 +210,38 @@ const taskSlice = createSlice({
         }
       })
       .addCase(submitTaskReport.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload;
+      })
+      .addCase(markTaskDone.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(markTaskDone.fulfilled, (state, action) => {
+        state.updating = false;
+        const { taskId, status } = action.payload;
+        const task = state.tasks.find((item) => item.id === taskId);
+        if (task) {
+          task.status = status;
+        }
+      })
+      .addCase(markTaskDone.rejected, (state, action) => {
+        state.updating = false;
+        state.error = action.payload;
+      })
+      .addCase(updateTaskComment.pending, (state) => {
+        state.updating = true;
+        state.error = null;
+      })
+      .addCase(updateTaskComment.fulfilled, (state, action) => {
+        state.updating = false;
+        const { taskId, comment } = action.payload;
+        const task = state.tasks.find((item) => item.id === taskId);
+        if (task) {
+          task.comment = comment;
+        }
+      })
+      .addCase(updateTaskComment.rejected, (state, action) => {
         state.updating = false;
         state.error = action.payload;
       });

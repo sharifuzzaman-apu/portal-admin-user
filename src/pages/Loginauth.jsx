@@ -20,6 +20,11 @@ const Login = () => {
   };
 
   useEffect(() => {
+    if (user?.isAdmin) {
+      navigate("/admin");
+      dispatch(resetForm());
+      return;
+    }
     if (user) {
       navigate("/user");
       dispatch(resetForm());

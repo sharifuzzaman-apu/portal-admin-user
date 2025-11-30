@@ -4,8 +4,9 @@ import Navbar from "../component/Navbar.jsx";
 
 const navItems = [
     { to: "/admin", label: "Home" },
-    { to: "/admin/users", label: "Users" },
+    { to: "/admin/assign", label: "Assign Task" },
     { to: "/admin/tasks", label: "Tasks" },
+    { to: "/admin/users", label: "Users" },
 ];
 
 const Admin = () => {
